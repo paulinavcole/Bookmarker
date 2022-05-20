@@ -1,3 +1,4 @@
+//data layer
 const Sequelize = require('sequelize');
 const conn = new Sequelize(process.env.DATABASE_URL || 'postgres://localhost/bookmarker')
 
@@ -19,7 +20,8 @@ const Category = conn.define('category', {
     }, 
 })
 
-Bookmark.belongsTo(Category)
+Bookmark.belongsTo(Category);
+Category.hasMany(Bookmark);
 
 module.exports= {
     conn, 

@@ -1,20 +1,74 @@
 const express = require('express');
+const res = require('express/lib/response');
 const app = express();
+
 db = require('./db/db.js');
 const { conn, Bookmark, Category} = db;
 
 app.get('/', (req, res) => res.redirect('/bookmarks'));
 app.get('/bookmarks', async (req, res, next) => {
     try {
-        const bookmarks = await Bookmark.findAll();
-        res.send(bookmarks);
+        const bookmarks = await Bookmark.findAll({
+            //do joins with includes in sequelize
+            include: [ Category ]
+        });
+        res.send(`
+            <html>
+                <head>
+                    <title>Bookmarker</title>
+                </head>
+                <body>
+                    <h1>Bookmarker</h1>
+                    ${
+                        bookmarks.map( bookmark => {
+                            return `<li>
+                              ${ bookmark.name }
+                              <a href='/categories/${bookmark.categoryId}'>${ bookmark.category.name}</a>
+                            </li>`;
+                        }).join('')
+                    }
+                </body>
+            </html>
+        `);
     } 
     catch(ex) {
         next(ex);
     }
-})
+});
 
+app.get('/categories/:id', async (req, res, next) => {
+    try {
+        const category = await Category.findByPk(req.params.id, {
+            include : [ Bookmark ]
+        });
+        res.send(`
+            <html>
+                <head>
+                    <title>Bookmarks for ${ category.name }</title>
+                </head>
+                <body>
+                    <h1>Bookmarks for ${ category.name }</h1>
+                    <a href='/bookmarks'>All Bookmarks</a>
+                    <ul>
+                    ${
+                        category.bookmarks.map ( bookmark => {
+                            return `
+                                <li>
+                                ${ bookmark.name }
+                                </li>
+                            `;
+                        }).join('')
+                    }
+                    </ul>
+                </body>
+            </html>
+        `)
+    }
+    catch {
+        next(ex)
+    }
 
+});
 const init = async() => {
     try{
         await conn.sync( {force: true});
